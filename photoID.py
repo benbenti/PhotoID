@@ -32,12 +32,6 @@ import matplotlib.pyplot as plt
 import tkfilebrowser as tkf
 from PIL import Image, ImageOps, ImageTk
 
-tesf = ['C:/Users/benti/Desktop/2024 Osaka/Fieldwork Awaji/Kaigaishi_pics',
-        'C:/Users/benti/Desktop/2024 Osaka/Fieldwork Awaji/Awaji/Photos'
-        ]
-test = Quizz(folders=tesf, n=3)
-test.choose_photos(exclude=['ToBeSorted'])
-test.start_quizz()
 
 class Quizz:
     """
@@ -463,35 +457,40 @@ class Question:
         self.quizz.next_question()
 
 
-def photo_quizz(photo_folder, n_question, id_matrix=None):
-    """
-    Main function to run the photo-identification training quizz.
+# def photo_quizz(photo_folder, n_question, id_matrix=None):
+    # """
+    # Main function to run the photo-identification training quizz.
     
-    Arguments:
-    ----------
-    win (tk.Tk):
-        The window in which to run the quizz.
-    n_question (int):
-        Number of questions to ask.
-    photo_folder (str):
-        Path to the folder containing the quizz photos. The name of the files
-        must start with the identity, followed by an underscore.
-    id_matrix (pd.DataFrame):
-        Identification matrix to store the quizz results. Default is None and
-        builds an empty matrix.
+    # Arguments:
+    # ----------
+    # win (tk.Tk):
+        # The window in which to run the quizz.
+    # n_question (int):
+        # Number of questions to ask.
+    # photo_folder (str):
+        # Path to the folder containing the quizz photos. The name of the files
+        # must start with the identity, followed by an underscore.
+    # id_matrix (pd.DataFrame):
+        # Identification matrix to store the quizz results. Default is None and
+        # builds an empty matrix.
     
-    Returns:
-    --------
-    id_matrix (pd.DataFrame):
-        The identication matrix with the quizz results.
-    """
+    # Returns:
+    # --------
+    # id_matrix (pd.DataFrame):
+        # The identication matrix with the quizz results.
+    # """
     
-    root = tk.Tk()
-    # Initialise photo quizz.
-    quizz = Quizz(root, photo_folder, n_question, id_matrix=id_matrix)
-    root.mainloop()
-    
-    return quizz.id_matrix
+    # root = tk.Tk()
+    # # Initialise photo quizz.
+    # quizz = Quizz(root, photo_folder, n_question, id_matrix=id_matrix)
+    # root.mainloop()
+    # tesf = ['C:/Users/benti/Desktop/2024 Osaka/Fieldwork Awaji/Kaigaishi_pics',
+        # 'C:/Users/benti/Desktop/2024 Osaka/Fieldwork Awaji/Awaji/Photos'
+        # ]
+# test = Quizz(folders=tesf, n=3)
+# test.choose_photos(exclude=['ToBeSorted'])
+# test.start_quizz()
+    # return quizz.id_matrix
 
 def explore_folder(folder, ff='.JPG', exclude=None):
     """
@@ -538,13 +537,13 @@ def load_results(fileName):
     id_matrix = pd.read_csv(fileName, index_col=0)
     return id_matrix
 
-# Behaviour if file is double-clicked.
-if __name__ == '__main__':
-    folder, n, mat, fn1, fn2 = param_window()
-    if mat:
-        mat = load_results(mat)
-    id_mat = photo_quizz(folder, n, id_matrix=mat)
-    fig, ax = show_results(id_mat, fname=fn2)
-    if fn1:
-        save_results(id_mat, fn1)
-    plt.show()
+# # Behaviour if file is double-clicked.
+# if __name__ == '__main__':
+    # folder, n, mat, fn1, fn2 = param_window()
+    # if mat:
+        # mat = load_results(mat)
+    # id_mat = photo_quizz(folder, n, id_matrix=mat)
+    # fig, ax = show_results(id_mat, fname=fn2)
+    # if fn1:
+        # save_results(id_mat, fn1)
+    # plt.show()
