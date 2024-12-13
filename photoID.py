@@ -1,7 +1,7 @@
 """
 GUI for photo identification training.
 Can be adapted to any set of photographs.
-The only requirement is that each photo's filename starts with the id followed
+The only requirement is that each photo's name starts with the id followed
 by an underscore. Score tracking and visualisation system included.
 
 How to:
@@ -13,12 +13,15 @@ Double-click on photoID.py file. The parameter setting windows opens:
 Classes
 -------
 Quizz
+Question
 
 Functions
 ---------
-photo_quizz
 explore_folder
+tkclear
 load_results
+photo_quizz
+param_window
 """
 
 import os
@@ -53,6 +56,9 @@ class Quizz:
     - score (pd.DataFrame): table storing the quizz results.
     - q_no (int): Index of question number.
     - res (matplotlib.Figure, matplotlib.Axes): Figure showing  quizz results.
+        Save parameters
+    - fig (path like): Location to save the figure of the quizz results.
+    - tab (path like): Location to save the table of the quizz results.
     
     Methods:
     --------
@@ -70,7 +76,7 @@ class Quizz:
     select_scores: utility to access file explorer on button click
     """
     
-    def __init__(self, folders=None, n=None, score=None):
+    def __init__(self, folders=None, n=None, score=None, fig=None, tab=None):
         """
         Initialise quizz instance from photo folder and parent window.
         Parametrisation of the quizz via command line or GUI.
@@ -79,6 +85,10 @@ class Quizz:
         - folders (list of path like): where the photos are stored
         - n (int): number of questions to ask
         - previous (pd.DataFrame): Previous quizz scores to load
+        - fig (path like): Location to save the figure. Default is None and
+            does not save the figure.
+        - tab (path like): Location to save the figure. Default is None and
+            does not save the figure.
         """
         
         self.window = tk.Tk()
@@ -90,6 +100,8 @@ class Quizz:
         self.folders = folders
         self.n = n
         self.score = score
+        self.fig = fig  # Store location to save figure.
+        self.tab = tab  # Store location to save table.
         self.res = None  # Required if save_results called before show_results.
         
         # If necessary information not provided, create GUI.
@@ -134,7 +146,7 @@ class Quizz:
             root.destroy()
     
     
-    def choose_photos(self, ff='.JPG', exclude=None):
+    def choose_photos(self, ff='.JPG', exclude=[]):
         """
         Explore the photo folders provided by the users and gets a list of
         photos and individuals. Can remove unwnated folder or individuals from
@@ -174,18 +186,18 @@ class Quizz:
                                                     ),
                                       index=self.id_list,
                                       columns=self.id_list + ['Correct'],
-                                      dtype=int
+                                      dtype=float
                                       )
         else:  # Check for the presence of each individual in previous score.
             for i in self.id_list:
                 if i not in self.score.index:
                     # Add row with id i at bottom.
                     row = pd.Series(data=np.zeros(shape=(self.score.shape[1])),
-                                    index=self.score.columns, dtype=int)
+                                    index=self.score.columns, dtype=float)
                     self.score.loc[i] = row
                     # Add column with individual name.
                     col = pd.Series(data=np.zeros(self.score.shape[0]),
-                                    index=self.score.index, dtype=int)
+                                    index=self.score.index, dtype=float)
                     self.score.loc[:, i] = col
             # Reorder lines
             self.score=self.score.sort_index()
@@ -247,19 +259,19 @@ class Quizz:
         # End message.
         msg = 'Test finished !\nYour overall success rate is {}%'.format(success)
         label = tk.Label(self.top_frame, text=msg)
-        label.pack()
+        label.pack(side=tk.LEFT)
         
         # Button to show and save results.
         button1 = tk.Button(self.mid_frame, text='Show results',
                             command=self.show_results)
-        button1.pack()
+        button1.pack(side=tk.LEFT)
         button2 = tk.Button(self.mid_frame, text='Save results',
                             command=self.save_results)
-        button2.pack()
+        button2.pack(side=tk.LEFT)
         
         # End button to close window.
         button = tk.Button(self.bot_frame, text='End', command=self.window.destroy)
-        button.pack()
+        button.pack(side=tk.LEFT)
     
     
     def show_results(self, cmap=plt.cm.Blues, show=True):
@@ -281,7 +293,7 @@ class Quizz:
         score_data = self.score.loc[idx_row, idx_col]
         
         # Transform values in proportion of id per individual for coloring.
-        score_colors = pd.DataFrame(data=score_data.copy(), dtype=float)
+        score_colors = score_data.copy()
         for ind in score_colors.index:
             score_colors.loc[ind] /= sum(score_colors.loc[ind].iloc[:-1])
             # Remove last column which scores correct answers.
@@ -295,8 +307,11 @@ class Quizz:
         rows, cols = score_data.shape
         for r in range(rows):
             for c in range(cols):
-                ax.text(x=c, y=r, s=str(round(score_data.iloc[r, c],2)),
-                        va='center', ha='center')
+                if score_data.iloc[r, c] == int(score_data.iloc[r, c]):
+                    txt = str(int(score_data.iloc[r, c]))
+                else:
+                    txt = str(int(100*round(score_data.iloc[r, c], 2))) + '%'
+                ax.text(x=c, y=r, s=txt, va='center', ha='center')
         
         # Display ids as axis tick labels.
         ax.set_yticks(range(rows))        
@@ -315,26 +330,33 @@ class Quizz:
             plt.close()
     
     
-    def save_results(self, figname='QuizzResultsFig.png',
-                     csvname='QuizzScore.csv'):
+    def save_results(self, figname=None, csvname=None):
         """
         Saves the identification quizz results in a csv file and the results
         plot in an image.
         Arguments
         ---------
         figname (path like): Name of the image to save the results plot.
-            None does not save the plot.
-        csvname (path like): Name to save the score table. None does not save
-            the score table.
+            Overrides the initialisation parameter.
+        csvname (path like): Name to save the score table.
+            Overrides the initialisations parameter.
         """
+        
+        # Updates output locations
         if figname:
-            if not self.res:  # Figure not built.
-                self.show_results(show=False)
-            fig = self.res[0]
-            fig.savefig(figname, bbox_inches='tight')
+            self.fig = figname
         
         if csvname:
-            self.score.to_csv(csvname)
+            self.tab = csvname
+        
+        # Save results if output locations available.
+        if self.fig:
+            if not self.res:  # Figure not built.
+                self.show_results(show=False)
+            self.res[0].savefig(self.fig, bbox_inches='tight')
+        
+        if self.tab:
+            self.score.to_csv(self.tab)
     
     
     def select_folders(self):
@@ -397,7 +419,7 @@ class Question:
         question.pack(pady='1m')
         # Display photo in quizz window mid frame.
         img_label = tk.Label(self.quizz.mid_frame)
-        img_label.pack()
+        img_label.pack(side=tk.LEFT)
         im = Image.open(self.photo)
         # Make photo square and fit to window size.
         size_str = self.quizz.window.geometry().split('+')[0].split('x')
@@ -444,7 +466,7 @@ class Question:
         message = tk.Label(self.notif, text=txt)
         message.pack(padx='3m', pady='3m')
         button = tk.Button(self.notif, text="Continue", command=self.clicked)
-        button.pack()
+        button.pack(side=tk.LEFT)
         self.notif.mainloop()
         
         
@@ -457,42 +479,7 @@ class Question:
         self.quizz.next_question()
 
 
-# def photo_quizz(photo_folder, n_question, id_matrix=None):
-    # """
-    # Main function to run the photo-identification training quizz.
-    
-    # Arguments:
-    # ----------
-    # win (tk.Tk):
-        # The window in which to run the quizz.
-    # n_question (int):
-        # Number of questions to ask.
-    # photo_folder (str):
-        # Path to the folder containing the quizz photos. The name of the files
-        # must start with the identity, followed by an underscore.
-    # id_matrix (pd.DataFrame):
-        # Identification matrix to store the quizz results. Default is None and
-        # builds an empty matrix.
-    
-    # Returns:
-    # --------
-    # id_matrix (pd.DataFrame):
-        # The identication matrix with the quizz results.
-    # """
-    
-    # root = tk.Tk()
-    # # Initialise photo quizz.
-    # quizz = Quizz(root, photo_folder, n_question, id_matrix=id_matrix)
-    # root.mainloop()
-    # tesf = ['C:/Users/benti/Desktop/2024 Osaka/Fieldwork Awaji/Kaigaishi_pics',
-        # 'C:/Users/benti/Desktop/2024 Osaka/Fieldwork Awaji/Awaji/Photos'
-        # ]
-# test = Quizz(folders=tesf, n=3)
-# test.choose_photos(exclude=['ToBeSorted'])
-# test.start_quizz()
-    # return quizz.id_matrix
-
-def explore_folder(folder, ff='.JPG', exclude=None):
+def explore_folder(folder, ff='.JPG', exclude=[]):
     """
     Explore the folder and all subfolder looking for pictures.
     Arguments
@@ -532,18 +519,111 @@ def tkclear(frame):
 
 def load_results(fileName):
     """
-    Reads previous identification results from csv file.
+    Reads previous identification results from manually input csv file.
     """
-    id_matrix = pd.read_csv(fileName, index_col=0)
-    return id_matrix
+    score = pd.read_csv(fileName, index_col=0)
+    return score
 
-# # Behaviour if file is double-clicked.
-# if __name__ == '__main__':
-    # folder, n, mat, fn1, fn2 = param_window()
-    # if mat:
-        # mat = load_results(mat)
-    # id_mat = photo_quizz(folder, n, id_matrix=mat)
-    # fig, ax = show_results(id_mat, fname=fn2)
-    # if fn1:
-        # save_results(id_mat, fn1)
-    # plt.show()
+def photo_quizz(folders=None, n=None, prev=None, excl=[],
+                out_f=None, out_t=None
+                ):
+    """
+    Main function to run the photo identification quizz and save the file and figure.
+    Arguments
+    ---------
+    folders (list of path like): locations where photographs are stored
+    n (int): number of questions to ask
+    prev (pandas;DataFrame): previous score to load prior to running the quizz.
+    excl (list of str): str present in the path of the photos to exclude from
+        the quizz.
+    out_f (path like): Location to save the figure of the quizz results.
+        Default is None and does not save the figure.
+    out_t (path like): Location to save the table of the quizz results.
+        Default is None and doest not save the table.
+    
+    Remark
+    ------
+    out_f and out_t will run irrespective of the user decision on the quizz end
+       screen.
+    """
+    
+    # Run quizz.
+    my_quizz = Quizz(folders=folders, n=n, score=prev, fig=out_f, tab=out_t)
+    my_quizz.choose_photos(exclude=excl)
+    my_quizz.start_quizz()
+    
+    # Save output in designated locations.
+    my_quizz.save_results(figname=out_f, csvname=out_t)
+
+def param_window():
+    """
+    Filler function to set parameters not included in Quizz initiation
+    (namely output file names).
+    Returns
+    -------
+    - out_f (path like): location to save quizz results figure. None does not
+        save the figure.
+    - out_t (path like): location to save quizz results table. None does not
+        save the figure.
+    """
+    
+    # Open window and prompts user to enter information.
+    w = tk.Tk()
+    w.title('Set up quizz output:')
+    
+    # Ask input to save figure.
+    f1 = tk.Frame(w)
+    f1.pack()
+    lab1 = tk.Label(f1, text='Path to save result figure (leave blank if no save required) :')
+    lab1.pack(side=tk.LEFT)
+    f_var = tk.StringVar()
+    f_var.set('')
+    entry1 = tk.Entry(f1, textvar=f_var)
+    entry1.pack(side=tk.LEFT)
+    
+    # Ask input to save score table.
+    f2 = tk.Frame(w)
+    f2.pack()
+    lab2 = tk.Label(f2, text='Path to save score table (leave blank if no save required) :')
+    lab2.pack(side=tk.LEFT)
+    t_var = tk.StringVar()
+    t_var.set('')
+    entry2 = tk.Entry(f2, textvar=t_var)
+    entry2.pack(side=tk.LEFT)
+    
+    # Ask input of exclusion terms.
+    f3 = tk.Frame(w)
+    f3.pack()
+    lab3 = tk.Label(f3, text='Exclusion terms (comma-separated list, no space): ')
+    lab3.pack(side=tk.LEFT)
+    ex_var = tk.StringVar()
+    ex_var.set('')
+    entry3 = tk.Entry(f3, textvar=ex_var)
+    entry3.pack(side=tk.LEFT)
+    
+    # End button to finish input.
+    f4 = tk.Frame(w)
+    f4.pack()
+    button = tk.Button(f4, text='Continue', command=w.quit)
+    button.pack(side=tk.LEFT)
+    
+    w.mainloop()
+    
+    # Retrieve input and close window.
+    out_f = f_var.get()
+    if out_f == '':
+        out_f = None
+    
+    out_t = t_var.get()
+    if out_t == '':
+        out_t = None
+    
+    tmp = ex_var.get()
+    if tmp == '':
+        exclusion = []
+    else:
+        exclusion = tmp.split(',')
+    
+    w.destroy()
+    
+    return out_f, out_t, exclusion
