@@ -14,13 +14,24 @@ The module include GUI to set up the photoID quizz.
 ```
 import photoID as pid
 
-# Configure output files and photo sorting.
-figure_output_name, table_output_name, exclusion_list = param_window()
+my_quizz = pid.Quizz()  # Create Quizz instance.
+my_quizz.config()  # GUI configuration.
+```
 
-# Finish configuration and run quizz.
-pid.photo_quizz(out_f=figure_output_name, out_t=table_output_name, excl=exclusion_terms)
-# This line will open the empty quizz window (do not close it!!) and the configuration window.
-# The quizz will start as soon as the configuration window is closed (with the Finish button).
+![Configuration window](./misc/config_window.png)
+
+```
+my_quizz.choose_photos()  # Prepare quizz resources based on parameters.
+my_quizz.start_quizz(n=5)  # Runs quizz.
+```
+
+![Example question](./misc/example_question.png)
+![End screen](./misc/end_screen.png)
+![Test results displayed in a figure](./misc/test_results.png)
+
+```
+# The whole procedure can be run with a single line:
+pid.photo_quizz(n=5)
 ```
 
 For some reason, running `pid.photo_quizz` displays an error message in the console. I will look into matplotlib to understand why.
@@ -34,22 +45,38 @@ It is also possible to configure the quizz manually.
 import photoID as pid
 
 # Set up all parameters manually:
-#    - if folders and n are not provided, the GUI will open after initialisation.
-#    - score, fig, tab are optionnal. Default is None and doesn't do anything
+#    - folders, incl, and excl for photo selection
+#     - n for number of questions in the quizz
+#    - score to load previous test results
+#    - fig and tab to save results
 
-# Initialise Quizz instance.
-my_quizz = pid.Quizz(folders=folders, n=n)  # Minimal version, no previous score is loaded and nothing is saved.
-my_quizz = pid.Quizz(folders=folders, n=n, score=score, fig=fig, tab=tab)
+my_quizz = pid.Quizz(folders=folders, incl=incl, excl=excl, fig=out_f, tab=out_t)
+my_quizz.choose_photos()
+my_quizz.start_quizz(n=n)
 
-# Select photos for the test.
-my_quizz.choose_photos()  # Minimal version, will select all photographs in the folders
-my_quizz.choose_photos(exclude=exclude)  # Will only select photographs which path do not contain elements of the exclude list.
-# I implemented it to remove unindentified photos from the test.
-# I may add an include parameter to select subsets of individuals from a folder.
+# Single line is possible.
+pid.photo_quizz(folders=None, incl=None, excl=None,
+                n=None,
+                score=None,
+				out_f=None, out_t=None
+                )
+```
 
-# Run quizz.
-my_quizz.start_quizz()
+### Standalone questions.
 
-# Manually save results if quizz ended without clicking on 'Save results' button.
-my_quizz.save_results(out_f=out_f, out_t=out_t)
+You can ask questions one by one instead of launching a full quizz.
+
+```
+import photoID as pid
+
+my_quizz = pid.Quizz(folders=folders, incl=incl, excl=excl, fig=out_f, tab=out_t)
+my_quizz.choose_photos()
+
+my_quizz.start_quizz()  # If n is not provided, the quizz does not start.
+
+#  Random question.
+pid.Question(my_quizz)
+# Question about a specific individual (useful to learn specific features
+# from multiple photographs).
+pid.Question(my_quizz, ind=ind)
 ```
