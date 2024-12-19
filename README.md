@@ -58,7 +58,7 @@ my_quizz.start_quizz(n=n)
 pid.photo_quizz(folders=None, incl=None, excl=None,
                 n=None,
                 score=None,
-				out_f=None, out_t=None
+                out_f=None, out_t=None
                 )
 ```
 
